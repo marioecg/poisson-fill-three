@@ -82,9 +82,9 @@ class PoissonFill {
         if (texture2 !== null) {
             shader.uniforms.fil.value = texture2;
         }
-        shader.uniforms.isup.value = texture2 !== null;
-        shader.uniforms.w.value = target.width;
-        shader.uniforms.h.value = target.height;
+        shader.uniforms.upscale.value = texture2 !== null;
+        shader.uniforms.resolution.value.x = target.width;
+        shader.uniforms.resolution.value.y = target.height;
 
         this.mesh.material = shader;
 
@@ -106,9 +106,8 @@ class PoissonFill {
             uniforms: {
                 unf: { value: null },
                 fil: { value: null },
-                isup: { value: false },
-                w: { value: 0 },
-                h: { value: 0 },
+                upscale: { value: false },
+                resolution: { value: new THREE.Vector2() },
             },
         });
 

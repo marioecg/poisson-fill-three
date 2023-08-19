@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-import baseVert from 'shaders/base.vert';
-import poissonFillFrag from 'shaders/poissonFill.frag';
+import baseVert from './shaders/base.vert';
+import poissonFillFrag from './shaders/poissonFill.frag';
 
 let geometry = new THREE.PlaneGeometry(2, 2);
 let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);

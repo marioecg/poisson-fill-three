@@ -25,7 +25,7 @@ class PoissonFill {
         this.mesh = new THREE.Mesh(geometry, this.shader1);
     }
 
-    allocate(width, height) {
+    init(width, height) {
         this.width = width;
         this.height = height;
         this.depth = Math.log2(Math.min(width, height)) - 1;

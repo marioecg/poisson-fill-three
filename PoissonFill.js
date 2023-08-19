@@ -29,7 +29,7 @@ class PoissonFill {
         this.width = width;
         this.height = height;
         this.depth = Math.log2(Math.min(width, height)) - 1;
-        this.depth = Math.min(PYRAMID_MAX_LAYERS, this.depth); 
+        this.depth = Math.min(PYRAMID_MAX_LAYERS, Math.round(this.depth)); 
 
         let w = width;
         let h = height;
@@ -58,7 +58,7 @@ class PoissonFill {
             });
 
             this.ups[i] = upTexture;
-        }        
+        }
     }
 
     process(texture) {

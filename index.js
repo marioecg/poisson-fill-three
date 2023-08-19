@@ -10,17 +10,14 @@ class Sketch {
   constructor() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
+
     this.renderer = new THREE.WebGLRenderer();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.pixelDensity = Math.min(window.devicePixelRatio, 2);
+    this.renderer.setPixelRatio(this.pixelDensity);
     this.renderer.setSize(this.width, this.height);
     this.renderer.setClearColor(0x000000, 0);
 
-    this.camera = new THREE.PerspectiveCamera(
-      45,
-      this.width / this.height,
-      0.1,
-      100
-    );
+    this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 0.1, 100);
     this.camera.position.z = 5;
 
     this.scene = new THREE.Scene();
@@ -57,6 +54,7 @@ class Sketch {
     let material = new THREE.MeshNormalMaterial();
 
     this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh.rotation.set(Math.PI * 0.25, Math.PI * 0.25, 0);
     this.scene.add(this.mesh)
 
     // Set up poisson fill
@@ -69,7 +67,9 @@ class Sketch {
 
   addPost() {
     this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    this.framebuffer = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
+    this.framebuffer = new THREE.WebGLRenderTarget(window.innerWidth * this.pixelDensity, window.innerHeight * this.pixelDensity, {
+      samples: 8
+    });
     
     let geometry = new THREE.PlaneGeometry(2, 2);
     let material = new THREE.ShaderMaterial({
@@ -94,15 +94,16 @@ class Sketch {
   }
 
   render() {
-    let time = this.clock.getElapsedTime();
+    let t = this.clock.getElapsedTime();
 
-    this.mesh.rotation.set(time * 0.5, time * 0.5, time * 0.5);
+    // this.mesh.rotation.set(t, t, t);
 
     this.renderer.setRenderTarget(this.framebuffer);
     this.renderer.render(this.scene, this.camera);
     this.renderer.setRenderTarget(null);
 
-    this.quad.material.uniforms.tDiffuse.value = this.framebuffer.texture;
+    this.pf.process(this.framebuffer.texture);
+    this.quad.material.uniforms.tDiffuse.value = this.pf.getTexture();
     
     this.renderer.render(this.quad, this.ortho);
   }

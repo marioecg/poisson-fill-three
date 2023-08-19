@@ -1,2 +1,1 @@
-# poisson-fill-three
-Poisson fill shader for Threejs
+# Poisson fill shader for Threejs

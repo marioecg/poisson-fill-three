@@ -8,8 +8,8 @@ import copyFrag from './shaders/copy.frag';
 
 class Sketch {
   constructor() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+    this.width = 500;
+    this.height = 500;
 
     this.renderer = new THREE.WebGLRenderer();
     this.pixelDensity = Math.min(window.devicePixelRatio, 2);
@@ -46,7 +46,7 @@ class Sketch {
 
   addEvents() {
     this.renderer.setAnimationLoop(this.render.bind(this))
-    window.addEventListener('resize', this.resize.bind(this));
+    // window.addEventListener('resize', this.resize.bind(this));
   }
 
   addElements() {
@@ -57,17 +57,25 @@ class Sketch {
     this.mesh.rotation.set(Math.PI * 0.25, Math.PI * 0.25, 0);
     this.scene.add(this.mesh)
 
+    // let loader = new THREE.TextureLoader();
+    // let imageMaterial = new THREE.ShaderMaterial({
+    //   vertexShader: baseVert,
+    //   fragmentShader: copyFrag,
+    //   uniforms: {
+    //     tDiffuse: { value: loader.load('flowers.png') },
+    //   },
+    // });
+    // let imageMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), imageMaterial);
+    // this.scene.add(imageMesh);
+
     // Set up poisson fill
     this.pf = new PoissonFill(this.renderer);
-
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    this.pf.init(width, height);
+    this.pf.init(this.width, this.height);
   }
 
   addPost() {
     this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    this.framebuffer = new THREE.WebGLRenderTarget(window.innerWidth * this.pixelDensity, window.innerHeight * this.pixelDensity, {
+    this.framebuffer = new THREE.WebGLRenderTarget(this.width * this.pixelDensity, this.height * this.pixelDensity, {
       samples: 8
     });
     
@@ -96,10 +104,12 @@ class Sketch {
   render() {
     let t = this.clock.getElapsedTime();
 
-    // this.mesh.rotation.set(t, t, t);
+    this.mesh.rotation.set(t, t, t);
 
     this.renderer.setRenderTarget(this.framebuffer);
     this.renderer.render(this.scene, this.camera);
+    // // Uncomment next line when want to render the flower image to screen (remove the cube from the scene)
+    // this.renderer.render(this.scene, this.ortho);
     this.renderer.setRenderTarget(null);
 
     this.pf.process(this.framebuffer.texture);

@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+import { PoissonFill } from './PoissonFill';
+
+import baseVert from './shaders/base.vert';
+import copyFrag from './shaders/copy.frag';
+
 class Sketch {
   constructor() {
     this.width = window.innerWidth;
@@ -8,7 +13,7 @@ class Sketch {
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(this.width, this.height);
-    this.renderer.setClearColor(0x000000, 1);
+    this.renderer.setClearColor(0x000000, 0);
 
     this.camera = new THREE.PerspectiveCamera(
       45,
@@ -33,6 +38,7 @@ class Sketch {
     this.addCanvas();
     this.addEvents();
     this.addElements();
+    this.addPost();
   }
 
   addCanvas() {
@@ -52,6 +58,29 @@ class Sketch {
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh)
+
+    // Set up poisson fill
+    this.pf = new PoissonFill(this.renderer);
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    this.pf.init(width, height);
+  }
+
+  addPost() {
+    this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    this.framebuffer = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
+    
+    let geometry = new THREE.PlaneGeometry(2, 2);
+    let material = new THREE.ShaderMaterial({
+      vertexShader: baseVert,
+      fragmentShader: copyFrag,
+      uniforms: {
+        tDiffuse: { value: null },
+      },
+    });
+
+    this.quad = new THREE.Mesh(geometry, material);
   }
 
   resize() {
@@ -69,7 +98,13 @@ class Sketch {
 
     this.mesh.rotation.set(time * 0.5, time * 0.5, time * 0.5);
 
+    this.renderer.setRenderTarget(this.framebuffer);
     this.renderer.render(this.scene, this.camera);
+    this.renderer.setRenderTarget(null);
+
+    this.quad.material.uniforms.tDiffuse.value = this.framebuffer.texture;
+    
+    this.renderer.render(this.quad, this.ortho);
   }
 }
 

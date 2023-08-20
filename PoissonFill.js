@@ -33,31 +33,27 @@ class PoissonFill {
 
         let w = width;
         let h = height;
+        let targetOpts = {
+            wrapS: THREE.RepeatWrapping,
+            wrapT: THREE.RepeatWrapping,
+            magFilter: THREE.LinearFilter,
+            minFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat,
+            type: THREE.FloatType,
+        }
 
         for (let i = 0; i < this.depth; i++) {
             w *= 0.5;
             h *= 0.5;
 
-            let downTexture = new THREE.WebGLRenderTarget(w, h, {
-                minFilter: THREE.LinearFilter,
-                magFilter: THREE.NearestFilter,
-                format: THREE.RGBAFormat,
-            });
-
-            this.downs[i] = downTexture;
+            this.downs[i] = new THREE.WebGLRenderTarget(w, h, targetOpts);
         }
 
         for (let i = 0; i < this.depth; i++) {
             w *= 2.0;
             h *= 2.0;
             
-            let upTexture = new THREE.WebGLRenderTarget(w, h, {
-                minFilter: THREE.LinearFilter,
-                magFilter: THREE.NearestFilter,
-                format: THREE.RGBAFormat,
-            });
-
-            this.ups[i] = upTexture;
+            this.ups[i] = new THREE.WebGLRenderTarget(w, h, targetOpts);
         }
     }
 

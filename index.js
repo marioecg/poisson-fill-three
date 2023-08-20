@@ -64,6 +64,7 @@ class Sketch {
     //   uniforms: {
     //     tDiffuse: { value: loader.load('flowers.png') },
     //   },
+    //   transparent: true,
     // });
     // let imageMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), imageMaterial);
     // this.scene.add(imageMesh);
@@ -76,6 +77,8 @@ class Sketch {
   addPost() {
     this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.framebuffer = new THREE.WebGLRenderTarget(this.width * this.pixelDensity, this.height * this.pixelDensity, {
+      format: THREE.RGBAFormat,
+      type: THREE.FloatType,      
       samples: 8
     });
     

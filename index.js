@@ -15,39 +15,35 @@ function testScene() {
   renderer.setClearColor(0xffffff, 0);
   document.body.appendChild(renderer.domElement);
 
-  let boxGeometry = new THREE.BoxGeometry();
-  let material1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  let mesh1 = new THREE.Mesh(boxGeometry, material1);
-  mesh1.scale.y = 2;
-  scene.add(mesh1);
+  // create a group with 20 circle geometry meshes and different color materials that rotate over time
+  let group = new THREE.Group();
 
-  let material2 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  let mesh2 = new THREE.Mesh(boxGeometry, material2);
-  mesh2.position.x += 2;
-  scene.add(mesh2);
+  let count = 20;
+  let radius = 2.5;
+  for (let i = 0;i < count;i++) {
+    let geometry = new THREE.CircleGeometry(0.25, 32);
+    let material = new THREE.MeshBasicMaterial({ color: new THREE.Color(Math.random(), Math.random(), Math.random()) });
+    let mesh = new THREE.Mesh(geometry, material);
 
-  let sphereGeometry = new THREE.SphereGeometry();
-  let material3 = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-  let mesh3 = new THREE.Mesh(sphereGeometry, material3);
-  mesh3.position.y += 2.5;
-  mesh3.position.x -= 2.5;
-  mesh3.scale.x = 0.5;
-  mesh3.scale.y = 0.5;
-  mesh3.scale.z = 0.5;
-  scene.add(mesh3);
+    mesh.position.x = Math.cos(i / (count - 1) * Math.PI * 2) * radius;
+    mesh.position.y = Math.sin(i / (count - 1) * Math.PI * 2) * radius;
 
-  let material4 = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-  let mesh4 = new THREE.Mesh(boxGeometry, material4);
-  mesh4.position.x -= 1;
-  scene.add(mesh4);
+    group.add(mesh);
+  }
+  scene.add(group);
 
   camera.position.z = 5;
 
   renderer.render(scene, camera);
 
   sceneUpdater = function (t) {
-    mesh4.position.y = Math.sin(t * 0.1) * 3;
-    mesh2.position.x = 2 + Math.sin(t * 0.1) * 2.5;
+    // animate the group rotation
+
+    group.children.forEach((mesh, i) => {
+      mesh.position.x = Math.cos(i / (count - 1) * Math.PI * 2 -t * 0.005) * radius;
+      mesh.position.y = Math.sin(i / (count - 1) * Math.PI * 2 -t * 0.005) * radius * 0.0;      
+    });
+
     renderer.render(scene, camera);
   };
 

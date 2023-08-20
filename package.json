@@ -13,6 +13,7 @@
     "vite-plugin-glsl": "^1.1.2"
   },
   "dependencies": {
-    "three": "^0.155.0"
+    "three": "^0.155.0",
+    "twgl.js": "^5.5.1"
   }
 }

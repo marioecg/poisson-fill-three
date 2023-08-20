@@ -1,113 +1,107 @@
-import * as THREE from 'three';
+// Reference:
+// Convolution Pyramids, Farbman et al., 2011 
+//   (https://www.cse.huji.ac.il/labs/cglab/projects/convpyr/data/convpyr-small.pdf)
+// Rendu (https://github.com/kosua20/Rendu)
 
-import baseVert from './shaders/base.vert';
-import poissonFillFrag from './shaders/poissonFill.frag';
+import * as twgl from 'twgl.js';
 
-const geometry = new THREE.PlaneGeometry(2, 2);
-const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-const PYRAMID_MAX_LAYERS = 12;
+import pfVert from './shaders/pf.vert';
+import pfFrag from './shaders/pf.frag';
 
-class PoissonFill {
-    constructor(renderer) {
-        this.renderer = renderer;
-
-        this.width = null;
-        this.height = null;
-        this.depth = null;
-
-        this.downs = [];
-        this.ups = [];
-
-        this.shader1 = this.createShader();
-        this.shader2 = this.createShader();
-
-        this.mesh = new THREE.Mesh(geometry, this.shader1);
+let PoissonFill = function (w, h, depth) {
+    if (!depth) {
+        depth = Math.floor(Math.log2(Math.min(w, h))) - 1;
     }
 
-    init(width, height) {
-        this.width = width;
-        this.height = height;
-        this.depth = Math.log2(Math.min(width, height)) - 1;
-        this.depth = Math.min(PYRAMID_MAX_LAYERS, Math.round(this.depth)); 
+    let that = this;
 
-        let w = width;
-        let h = height;
-        let targetOpts = {
-            wrapS: THREE.RepeatWrapping,
-            wrapT: THREE.RepeatWrapping,
-            magFilter: THREE.LinearFilter,
-            minFilter: THREE.LinearFilter,
-            format: THREE.RGBAFormat,
-            type: THREE.FloatType,
-        }
+    const gl = document.createElement("canvas").getContext("webgl");
+    gl.canvas.width = w;
+    gl.canvas.height = h;
+    gl.canvas.style.visibility = "hidden";
+    gl.canvas.style.zIndex = "-1000";
+    gl.canvas.style.pointerEvents = "none";
+    gl.canvas.style.position = "absolute";
 
-        for (let i = 0; i < this.depth; i++) {
-            w *= 0.5;
-            h *= 0.5;
+    const canv = document.createElement("canvas");
+    canv.width = w;
+    canv.height = h;
+    let ctx = canv.getContext('2d');
+    // document.body.appendChild(canv);
 
-            this.downs[i] = new THREE.WebGLRenderTarget(w, h, targetOpts);
-        }
+    document.body.appendChild(gl.canvas);
+    const programInfo = twgl.createProgramInfo(gl, [pfVert, pfFrag]);
+    const arrays = {
+        position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
+    };
+    const bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
 
-        for (let i = 0; i < this.depth; i++) {
-            w *= 2.0;
-            h *= 2.0;
-            
-            this.ups[i] = new THREE.WebGLRenderTarget(w, h, targetOpts);
-        }
-    }
-
-    process(texture) {
-        this.pass(this.shader1, this.downs[0], texture, null);
-
-        for (let i = 1;i < this.depth;i++)
-            this.pass(this.shader1, this.downs[i], this.downs[i - 1].texture, null);
-
-        this.pass(this.shader2, this.ups[0], this.downs[this.depth - 2].texture, this.downs[this.depth - 1].texture);
-
-        for (let i = 1;i < this.depth - 1;i++)
-            this.pass(this.shader2, this.ups[i], this.downs[this.depth - i - 2].texture, this.ups[i - 1].texture);
-
-        this.pass(this.shader2, this.ups[this.depth - 1], texture, this.ups[this.depth - 2].texture);
-    }
-
-    pass(shader, target, texture1, texture2) {
-        this.renderer.setRenderTarget(target);
-
-        shader.uniforms.unf.value = texture1;
-        if (texture2 !== null) {
-            shader.uniforms.fil.value = texture2;
-        }
-        shader.uniforms.upscale.value = texture2 !== null;
-        shader.uniforms.resolution.value.x = target.width;
-        shader.uniforms.resolution.value.y = target.height;
-
-        this.mesh.material = shader;
-
-        this.renderer.clear();
-        this.renderer.setClearColor(0xffffff);
-        this.renderer.setClearAlpha(0);
-        this.renderer.render(this.mesh, camera);
-        this.renderer.setRenderTarget(null);
-    }
-
-    getTexture() {
-        return this.ups[this.depth - 1].texture;
-    }    
-
-    createShader() {
-        let shader = new THREE.ShaderMaterial({
-            vertexShader: baseVert,
-            fragmentShader: poissonFillFrag,
-            uniforms: {
-                unf: { value: null },
-                fil: { value: null },
-                upscale: { value: false },
-                resolution: { value: new THREE.Vector2() },
-            },
+    function newPass() {
+        return twgl.createTexture(gl, {
+            src: gl.canvas,
+            flipY: true,
+            min: gl.NEAREST,
+            mag: gl.NEAREST,
         });
-
-        return shader;
     }
-}
+
+    function pass(p, tex1, tex2, it) {
+        it = it ? it : 0;
+        twgl.resizeCanvasToDisplaySize(gl.canvas);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        const uniforms = {
+            w: w,
+            h: h,
+            unf: tex1,
+            fil: tex2 ? tex2 : tex1,
+            pw: Math.floor((w - w / Math.pow(2, it)) / 2),
+            ph: Math.floor((h - h / Math.pow(2, it)) / 2),
+            pw1: Math.floor((w - w / Math.pow(2, it - 1)) / 2),
+            ph1: Math.floor((h - h / Math.pow(2, it - 1)) / 2),
+            isup: !!tex2,
+        };
+        gl.useProgram(programInfo.program);
+        gl.disable(gl.DEPTH_TEST);
+        twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+        twgl.setUniforms(programInfo, uniforms);
+        twgl.drawBufferInfo(gl, bufferInfo);
+        // gl.canvas.width=Math.pow(2,Math.ceil(Math.random()*10));
+        gl.bindTexture(gl.TEXTURE_2D, p);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gl.canvas);
+    }
+
+    let ps = [];
+    for (let i = 0;i < depth;i++) {
+        ps.push(newPass());
+    }
+    let qs = [];
+    for (let i = 0;i < 3;i++) {
+        qs.push(newPass());
+    }
+
+    that.process = function (inp) {
+        gl.bindTexture(gl.TEXTURE_2D, ps[0]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, inp.image);
+
+        for (let i = 0;i < depth - 1;i++) {
+            pass(ps[i + 1], ps[i], null, i + 1);
+        }
+
+        pass(qs[0], ps[depth - 2], ps[depth - 1], 0);
+        for (let i = 0;i < depth - 2;i++) {
+            pass(qs[(i + 1) % 3], ps[depth - 3 - i], qs[i % 3], depth - i - 2);
+        }
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(gl.canvas, 0, 0);
+
+    };
+
+    that.getDom = function () { return canv; };
+};
 
 export { PoissonFill };

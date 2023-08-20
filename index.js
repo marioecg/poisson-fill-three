@@ -71,7 +71,7 @@ class Sketch {
 
     // Set up poisson fill
     this.pf = new PoissonFill(this.renderer);
-    this.pf.init(this.width, this.height);
+    this.pf.init(this.width * this.pixelDensity, this.height * this.pixelDensity);
   }
 
   addPost() {
